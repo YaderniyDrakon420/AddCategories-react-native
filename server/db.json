@@ -1,0 +1,40 @@
+{
+  "categories": [
+    {
+      "id": "1",
+      "title": "Фрукти\nта овочі",
+      "icon": "🍎",
+      "color": "#DDF6E7"
+    },
+    {
+      "id": "2",
+      "title": "Молочні\nпродукти",
+      "icon": "🥛",
+      "color": "#DDEBFF"
+    },
+    {
+      "id": "3",
+      "title": "Мʼясо\nта риба",
+      "icon": "🥩",
+      "color": "#FFE1E1"
+    },
+    {
+      "title": "Bread",
+      "icon": "🥖",
+      "color": "#EEE3FF",
+      "id": "C7nii5ThcvY"
+    },
+    {
+      "title": "Молочка",
+      "icon": "🥛",
+      "color": "#E3F2FD",
+      "id": "siUgB2lPQyQ"
+    },
+    {
+      "title": "Спеції",
+      "icon": "🧂",
+      "color": "#FFFDE7",
+      "id": "3pfJI9OjTXI"
+    }
+  ]
+}
