@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import { ImageBackground, StyleSheet, Text, View } from "react-native";
+import { ImageBackground, Platform, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import MyFlatList from "./src/ui/MyFlatList";
 import { BasicComponents } from "./src/ui/BasicComponents";
 import { Inputs } from "./src/ui/Inputs";
@@ -7,11 +7,23 @@ import { MyKeyboard } from "./src/ui/MyKeybord";
 import { LayoutExample } from "./src/ui/LayoutExample";
 import CategoryScreen from "./src/screens/CategoryScreen";
 import HomeScreen from "./src/screens/HomeScreen";
+import { TestScreen } from "./src/screens/TestScreen";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import ProductList from "./src/components/ProductList";
+import AdaptationScreen from "./src/screens/AdaptationScreen";
+import LikedScreen from "./src/screens/LikedScreen";
+import { useState } from "react";
+import { Product } from "./src/screens/HomeScreen";
 
 export default function App() {
+  const { width, height } = useWindowDimensions()
+      console.log(`${width} ${height}`)
+      console.log(Platform.OS)
+  const [products, setProducts] = useState<Product[]>([]);
   return (
     // <LayoutExample />
-    <View style={styles.container}>
+    <SafeAreaProvider>
+      <View style={styles.container}>
       {/* <ImageBackground
         source={{ uri: "https://picsum.photos/800/600" }}
         style={{ flex: 1, justifyContent: "center" }}
@@ -22,15 +34,37 @@ export default function App() {
         <MyFlatList /> */}
         {/* <Inputs/> */}
         {/* <MyKeyboard/> */}
-        <CategoryScreen/>
-        {/* <HomeScreen/> */}
+        {/* <CategoryScreen/> */}
+        <HomeScreen/>
         <StatusBar style="auto" />
-      {/* </ImageBackground> */}
+        {/* <TestScreen/> */}
+        {/* <AdaptationScreen/> */}
+        <StatusBar style="auto" />
+        {/* <View style={[styles.item, {backgroundColor: "yellow"}]}></View>
+        <View style={[styles.item, {backgroundColor: "green", alignSelf: "flex-start" }]}></View>
+        <View style={[styles.item, {backgroundColor: "purple"}]}></View>
+        <View style={[styles.item, {backgroundColor: "lime"}]}></View> */}
     </View>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
+    // container: {
+    //   flexDirection: "row",
+    //   flex:1,
+    //   backgroundColor:"orange",
+    //   width: "100%",
+    //   height: "100%",
+    //   justifyContent: "space-between",
+    //   flexWrap: "wrap",
+    //   alignItems: "center"
+    // },
+    // item: {
+    //   height: "10%",
+    //   width: "15%"
+    // }
+
   container: {
     flex: 1,
     backgroundColor: "#ffffff",

@@ -10,9 +10,13 @@ import {
   ActivityIndicator,
   StatusBar,
   Switch,
+  Pressable,
+  Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import Counter from "../components/Counter";
+import CounterView from "../components/CounterView";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -24,7 +28,7 @@ interface Category {
   iconColor: string;
 }
 
-interface Product {
+export interface Product {
   id: string;
   title: string;
   price: number;
@@ -37,6 +41,8 @@ interface Product {
 }
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
+  console.log(`${insets.top}`)  
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
@@ -47,6 +53,9 @@ export default function HomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [sortOrder, setSortOrder] = useState<
+  'price_asc' | 'price_desc' | 'alpha_asc' | 'alpha_desc' | null
+  >(null);
 
   useEffect(() => {
     fetchData();
@@ -79,10 +88,8 @@ export default function HomeScreen() {
     }
   };
 
-  // Фільтрація товарів: за категорією ТА за пошуковим запитом
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
-      // Перетворення на String усуває помилки розбіжності типів (String vs Number)
       const matchesCategory = selectedCategoryId
         ? String(product.categoryId) === String(selectedCategoryId)
         : true;
@@ -107,15 +114,39 @@ export default function HomeScreen() {
     bannerSubtitle: isDarkMode ? "#81C784" : "#4CAF50",
   };
 
-  const toggleLike = (productId: string) => {
+  const toggleLike = async (productId: string) => {
+  const product = products.find((p) => p.id === productId);
+
+  if (!product) return;
+
+  const newIsLiked = !product.isLiked;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        isLiked: newIsLiked,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Не вдалося змінити лайк");
+    }
+
     setProducts((prevProducts) =>
-        prevProducts.map((product) =>
+      prevProducts.map((product) =>
         product.id === productId
-                    ? { ...product, isLiked: !product.isLiked }
-                    : product
-                )
-            );
-        };
+          ? { ...product, isLiked: newIsLiked }
+          : product
+      )
+    );
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   if (loading) {
     return (
@@ -144,6 +175,29 @@ export default function HomeScreen() {
     );
   }
 
+// Функция сортировки по цене
+const handleSort = (order: 'asc' | 'desc') => {
+  setSortOrder(order === 'asc' ? 'price_asc' : 'price_desc'); // Уникальный маркер
+  
+  const sorted = [...products].sort((a, b) => {
+    return order === 'asc' ? a.price - b.price : b.price - a.price;
+  });
+  setProducts(sorted);
+};
+
+// Функция сортировки по алфавиту
+const handleSortByAlphabet = (order: 'asc' | 'desc') => {
+  setSortOrder(order === 'asc' ? 'alpha_asc' : 'alpha_desc'); // Уникальный маркер
+  
+  const sorted = [...products].sort((a, b) => {
+    return order === 'asc' 
+      ? a.title.localeCompare(b.title) 
+      : b.title.localeCompare(a.title);
+  });
+  setProducts(sorted);
+};
+
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
       <StatusBar
@@ -158,13 +212,15 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View>
             <Text style={[styles.greetingTitle, { color: theme.textPrimary }]}>
-              Привіт, Данило Макаренко 👋
+              Привіт, Данило 👋
             </Text>
             <Text
               style={[styles.greetingSubtitle, { color: theme.textSecondary }]}
             >
               Раді бачити тебе знову!
             </Text>
+            {/* <Counter />
+            <CounterView/> */}
           </View>
           <View style={styles.headerActions}>
             <View style={styles.themeToggleContainer}>
@@ -348,6 +404,124 @@ export default function HomeScreen() {
             );
           })}
         </ScrollView>
+          
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+            Обрані товари
+          </Text>
+          <Text style={[styles.countText, { color: theme.textSecondary }]}>
+            ({products.filter((product) => product.isLiked).length})
+          </Text>
+        </View>
+
+        {products.filter((product) => product.isLiked).length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons
+              name="heart-outline"
+              size={40}
+              color={theme.textSecondary}
+            />
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+              Поки немає улюблених товарів
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.productsGrid}>
+            {products
+              .filter((product) => product.isLiked)
+              .map((product) => (
+                <View
+                  key={product.id}
+                  style={[
+                    styles.productCard,
+                    {
+                      backgroundColor: theme.cardBg,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <TouchableOpacity
+                    style={styles.favoriteButton}
+                    onPress={() => toggleLike(product.id)}
+                  >
+                    <Ionicons name="heart" size={20} color="#ff4d4f" />
+                  </TouchableOpacity>
+
+                  <Image
+                    source={{ uri: product.image }}
+                    style={styles.productImage}
+                    resizeMode="contain"
+                  />
+
+                  <Text
+                    style={[styles.productTitle, { color: theme.textPrimary }]}
+                    numberOfLines={1}
+                  >
+                    {product.title}
+                  </Text>
+
+                  <Text style={[styles.productPrice, { color: theme.textPrimary }]}>
+                    {product.price}{" "}
+                    <Text style={[styles.productUnit, { color: theme.textSecondary }]}>
+                      {product.unit}
+                    </Text>
+                  </Text>
+
+                  <View style={styles.productFooter}>
+                    <View style={styles.ratingContainer}>
+                      <Ionicons name="star" size={14} color="#FFB300" />
+                      <Text style={[styles.ratingText, { color: theme.textPrimary }]}>
+                        {product.rating}{" "}
+                        <Text style={styles.reviewsText}>({product.reviews})</Text>
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+          </View>
+        )}
+
+                
+                  <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Сортування</Text>
+
+        <View style={styles.sortContainer}>
+          {/* Сортировка по цене: Дешевле сначала */}
+          <TouchableOpacity 
+            style={[styles.button, sortOrder === 'price_asc' && styles.activeButton]} 
+            onPress={() => handleSort('asc')}
+          >
+            <Text style={styles.buttonText}>Дешевші спочатку ↑</Text>
+          </TouchableOpacity>
+
+          {/* Сортировка по цене: Дороже сначала */}
+          <TouchableOpacity 
+            style={[styles.button, sortOrder === 'price_desc' && styles.activeButton]} 
+            onPress={() => handleSort('desc')}
+          >
+            <Text style={styles.buttonText}>Дорожчі спочатку ↓</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Добавляем второй контейнер для кнопок алфавита, чтобы они стояли красивым рядом */}
+        <View style={styles.sortContainer}>
+          {/* Сортировка по алфавиту: А-Я */}
+          <TouchableOpacity 
+            style={[styles.button, sortOrder === 'alpha_asc' && styles.activeButton]} 
+            onPress={() => handleSortByAlphabet('asc')}
+          >
+            <Text style={styles.buttonText}>По алфавіту (А-Я)</Text>
+          </TouchableOpacity>
+
+          {/* Сортировка по алфавиту: Я-А */}
+          <TouchableOpacity 
+            style={[styles.button, sortOrder === 'alpha_desc' && styles.activeButton]} 
+            onPress={() => handleSortByAlphabet('desc')}
+          >
+            <Text style={styles.buttonText}>По алфавіту (Я-А)</Text>
+          </TouchableOpacity>
+        </View>
+
+        
 
         {/* Секція: Товари */}
         <View style={styles.sectionHeader}>
@@ -634,6 +808,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 16,
     width: 72,
+    backgroundColor: Platform.OS === "web"
+    ? "yellow"
+    : Platform.OS === "android"
+    ? "red"
+    : "green",
   },
   categoryIconContainer: {
     width: 64,
@@ -733,6 +912,24 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginLeft: 4,
   },
+  activeButton: {
+    backgroundColor: '#007AFF', 
+  },
+  buttonText: {
+    fontWeight: '600',
+    color: '#333',
+  },
+   sortContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  button: {
+    flex: 1,
+    backgroundColor: '#e0e0e0',
+    paddingVertical: 10,
+    marginHorizontal: 5,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
 });
-
- 
